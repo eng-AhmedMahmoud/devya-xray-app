@@ -1,0 +1,1 @@
+# keep public/ present so the standalone Docker COPY has a target
