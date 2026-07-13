@@ -1,0 +1,22 @@
+services:
+  xray-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_APP_URL: https://xray.devya.dev
+    image: devya-xray-app:latest
+    container_name: devya-xray-app
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      # Server-side rewrite target for /api/* → backend (same-origin for the browser).
+      - API_PROXY_TARGET=https://api.devya-solutions.com
+    ports:
+      - "3005:3000" # host:container — nginx proxies xray.devya.dev here
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/en').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s

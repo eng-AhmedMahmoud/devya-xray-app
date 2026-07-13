@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 245, 245, 245;
+  --background-start-rgb: 10, 10, 10;
+  --background-end-rgb: 15, 15, 15;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  background-color: #0a0a0a;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(255, 255, 255, 0.06), transparent 60%),
+    radial-gradient(1000px 700px at 0% 110%, rgba(255, 255, 255, 0.035), transparent 60%),
+    linear-gradient(to bottom, #0a0a0a, #0f0f0f 60%, #0a0a0a);
+  background-attachment: fixed;
+  min-height: 100vh;
+  font-family: var(--font-sora), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: none;
+}
+
+::selection {
+  background-color: #f5f5f5;
+  color: #0a0a0a;
+}
+
+/* Scrollbar */
+html::-webkit-scrollbar { width: 8px; }
+html::-webkit-scrollbar-track { background: #141414; }
+html::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+  border: 1px solid #2a2a2a;
+}
+html::-webkit-scrollbar-thumb:hover { background: #444; }
+
+/* Prevent input zoom on iOS */
+input, textarea, select, button { font-size: 16px; }
+@media (max-width: 768px) {
+  input:focus, textarea:focus, select:focus { font-size: 16px !important; }
+}
+
+/* Reusable surface — frosted dark card */
+.surface {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.01));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
+}
+
+.surface-strong {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+}
+
+/* Subtle grid background overlay */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: -1px -1px;
+}
+
+/* Focus ring */
+.ring-focus:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15), 0 0 0 4px rgba(255, 255, 255, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Print rendition (backend puppeteer prints with printBackground=true, so the
+   dark theme is kept). Kill fixed attachments/filters that break pagination. */
+@media print {
+  html, body {
+    background: #0a0a0a;
+    background-attachment: initial;
+  }
+  .surface, .surface-strong {
+    backdrop-filter: none;
+  }
+}
