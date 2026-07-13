@@ -99,6 +99,9 @@ export type CalibrationStats = {
 
 export type OverallStats = {
   healthPct: number;
+  /** Self-reported health (maturity avg from the team's own answers). Present
+   *  on every report; it's the only health figure on a free self snapshot. */
+  selfHealthPct: number;
   urgencyIndex: number;
   evaluated: number;
   scored: number;
@@ -110,6 +113,8 @@ export type PillarStats = {
   evaluated: number;
   scored: number;
   healthPct: number;
+  /** Self-reported health for this pillar (drives the free snapshot view). */
+  selfHealthPct: number;
   urgencyIndex: number;
   distribution: Distribution;
   selfDistribution: Distribution;
@@ -190,6 +195,11 @@ export type ReportMeta = {
   leadConsultant: string | null;
   reportVersion: string | number;
   publishedAt: string | null;
+  /** True for a free, instant self-serve snapshot (no consultant engagement). */
+  selfServe: boolean;
+  /** True once Devya has verified the answers against the actual code. A free
+   *  snapshot is `verified: false` — it renders the self-assessment framing. */
+  verified: boolean;
   framework: { key: string; name: string; brandKey: string };
 };
 
@@ -203,9 +213,42 @@ export type ReportPayload = {
   quickWins: QuickWin[];
 };
 
+/* ------------------------------ Free self-serve -------------------------- */
+
+export type StartSelfServeBody = {
+  companyName: string;
+  contactName: string;
+  contactEmail: string;
+  companyWebsite?: string;
+  teamSize?: string;
+  lang: 'en' | 'ar' | string;
+};
+
+export type StartSelfServeResult = {
+  assessToken: string;
+  portalToken: string;
+  lang: string;
+};
+
+export type SubmitResult = {
+  ok: boolean;
+  answered: number;
+  selfServe: boolean;
+  portalToken?: string;
+};
+
 /* --------------------------------- Client -------------------------------- */
 
 export const api = {
+  public: {
+    /** Kick off a free self-serve snapshot — creates the engagement and returns
+     *  the assessment + portal tokens so we can route straight into the wizard. */
+    start: (body: StartSelfServeBody) =>
+      req<StartSelfServeResult>(`/public/xray/start`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+  },
   assessment: {
     get: (token: string) => req<AssessmentPayload>(`/public/xray/${token}`),
     save: (token: string, responses: ResponsePatch[]) =>
@@ -214,7 +257,7 @@ export const api = {
         body: JSON.stringify({ responses }),
       }),
     submit: (token: string) =>
-      req<{ ok: boolean; answered: number }>(`/public/xray/${token}/submit`, {
+      req<SubmitResult>(`/public/xray/${token}/submit`, {
         method: 'POST',
       }),
   },

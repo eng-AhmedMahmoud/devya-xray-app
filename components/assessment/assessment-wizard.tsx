@@ -12,6 +12,7 @@ import {
   type ResponsePatch,
 } from '@/lib/api';
 import { formatDate } from '@/lib/ui';
+import { useRouter } from '@/i18n/navigation';
 import { Wordmark } from '@/components/ui/wordmark';
 import { LocaleToggle } from '@/components/ui/locale-toggle';
 import { FriendlyError } from '@/components/ui/friendly-error';
@@ -28,6 +29,7 @@ const AUTOSAVE_DEBOUNCE_MS = 800;
 export function AssessmentWizard({ token }: { token: string }) {
   const t = useTranslations('assessment');
   const locale = useLocale();
+  const router = useRouter();
 
   const [payload, setPayload] = useState<AssessmentPayload | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -149,7 +151,12 @@ export function AssessmentWizard({ token }: { token: string }) {
     setSubmitError(null);
     try {
       await flush();
-      await api.assessment.submit(token);
+      const res = await api.assessment.submit(token);
+      // Self-serve snapshot: send the visitor straight to their instant report.
+      if (res.selfServe && res.portalToken) {
+        router.replace(`/r/${res.portalToken}`);
+        return;
+      }
       setSubmitted(true);
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : String(e));
@@ -157,7 +164,7 @@ export function AssessmentWizard({ token }: { token: string }) {
       setSubmitting(false);
       setShowConfirm(false);
     }
-  }, [flush, token]);
+  }, [flush, token, router]);
 
   /* -------------------------------- Derived -------------------------------- */
 

@@ -14,6 +14,7 @@ import { PillarSection } from './pillar-section';
 import { FindingsSection } from './findings-section';
 import { RoadmapSection } from './roadmap-section';
 import { QuickWinsGrid } from './quick-wins-grid';
+import { SnapshotView } from './snapshot-view';
 
 export type ChartSet = {
   Radar: ComponentType<RadarProps>;
@@ -58,6 +59,10 @@ export function ReportView({
     <Wordmark neutralName={data.meta.framework.name} />
   );
 
+  // A free self-serve snapshot is not yet code-verified — render the
+  // self-assessment framing instead of the full report.
+  const snapshot = data.meta.verified === false;
+
   const radarData = [...data.pillars]
     .sort((a, b) => a.order - b.order)
     .map((p) => ({ name: p.name, value: p.stats.healthPct }));
@@ -73,13 +78,15 @@ export function ReportView({
           <div className="container mx-auto flex max-w-6xl items-center justify-between py-3">
             {branding}
             <div className="flex items-center gap-3">
-              <a
-                href={api.report.pdfUrl(portalToken)}
-                className="inline-flex items-center gap-2 rounded-md bg-white px-3.5 py-2 text-xs font-medium text-ink-900 transition-colors hover:bg-ink-200 ring-focus"
-              >
-                <Download className="h-3.5 w-3.5" />
-                {t('downloadPdf')}
-              </a>
+              {!snapshot && (
+                <a
+                  href={api.report.pdfUrl(portalToken)}
+                  className="inline-flex items-center gap-2 rounded-md bg-white px-3.5 py-2 text-xs font-medium text-ink-900 transition-colors hover:bg-ink-200 ring-focus"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  {t('downloadPdf')}
+                </a>
+              )}
               <LocaleToggle />
             </div>
           </div>
@@ -93,38 +100,44 @@ export function ReportView({
             : 'container mx-auto max-w-6xl flex-1 pb-20'
         }
       >
-        <ReportHero meta={data.meta} overall={data.overall} />
+        {snapshot ? (
+          <SnapshotView data={data} print={print} Radar={Radar} Donut={Donut} />
+        ) : (
+          <>
+            <ReportHero meta={data.meta} overall={data.overall} />
 
-        {radarData.length > 0 && (
-          <section className="surface mt-6 p-6 print:break-inside-avoid">
-            <h2 className="text-sm font-medium text-ink-200">{t('radarTitle')}</h2>
-            <div className="mt-3">
-              <Radar data={radarData} animate={!print} />
-            </div>
-          </section>
-        )}
+            {radarData.length > 0 && (
+              <section className="surface mt-6 p-6 print:break-inside-avoid">
+                <h2 className="text-sm font-medium text-ink-200">{t('radarTitle')}</h2>
+                <div className="mt-3">
+                  <Radar data={radarData} animate={!print} />
+                </div>
+              </section>
+            )}
 
-        {data.execSummary && (
-          <section className="surface mt-6 p-6">
-            <h2 className="text-xl font-semibold text-white">{t('execSummaryTitle')}</h2>
-            <div className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink-200">
-              {data.execSummary}
-            </div>
-          </section>
-        )}
+            {data.execSummary && (
+              <section className="surface mt-6 p-6">
+                <h2 className="text-xl font-semibold text-white">{t('execSummaryTitle')}</h2>
+                <div className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink-200">
+                  {data.execSummary}
+                </div>
+              </section>
+            )}
 
-        {pillars.map((pillar) => (
-          <PillarSection key={pillar.key} pillar={pillar} Donut={Donut} print={print} />
-        ))}
+            {pillars.map((pillar) => (
+              <PillarSection key={pillar.key} pillar={pillar} Donut={Donut} print={print} />
+            ))}
 
-        {data.findings.length > 0 && <FindingsSection findings={data.findings} />}
-        {data.roadmap.length > 0 && <RoadmapSection roadmap={data.roadmap} />}
-        {data.quickWins.length > 0 && <QuickWinsGrid items={data.quickWins} />}
+            {data.findings.length > 0 && <FindingsSection findings={data.findings} />}
+            {data.roadmap.length > 0 && <RoadmapSection roadmap={data.roadmap} />}
+            {data.quickWins.length > 0 && <QuickWinsGrid items={data.quickWins} />}
 
-        {isDevya && (
-          <footer className="mt-12 border-t border-white/5 pt-6 text-xs text-ink-500">
-            {t('poweredBy')}
-          </footer>
+            {isDevya && (
+              <footer className="mt-12 border-t border-white/5 pt-6 text-xs text-ink-500">
+                {t('poweredBy')}
+              </footer>
+            )}
+          </>
         )}
       </main>
     </div>
