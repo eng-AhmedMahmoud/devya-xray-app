@@ -9,23 +9,44 @@ import { Wordmark } from '@/components/ui/wordmark';
 import { LocaleToggle } from '@/components/ui/locale-toggle';
 import { FriendlyError } from '@/components/ui/friendly-error';
 import { LoadingScreen } from '@/components/ui/loading-screen';
-import { Reveal } from '@/components/landing/reveal';
-import type { DonutProps, MaturityBarProps, RadarProps } from './charts';
-import { ReportHero } from './report-hero';
-import { ReportGuide } from './report-guide';
-import { SectionNav, type NavItem } from './section-nav';
-import { PillarSection } from './pillar-section';
-import { FindingsSection } from './findings-section';
-import { RoadmapSection } from './roadmap-section';
-import { QuickWinsGrid } from './quick-wins-grid';
+import type {
+  CalibrationProps,
+  DonutProps,
+  EffortBarProps,
+  EffortByTimelineProps,
+  FindingsByPillarProps,
+  MaturityAcrossProps,
+  MaturityBarProps,
+  OverallGaugeProps,
+  PillarCompareProps,
+  RadarPoint,
+  RadarProps,
+  SeverityPieProps,
+} from './charts';
+import { ReportTabs, useTabHash, type TabDef, type TabId } from './report-tabs';
+import { OverviewTab } from './tabs/overview-tab';
+import { PillarsTab } from './tabs/pillars-tab';
+import { FindingsTab } from './tabs/findings-tab';
+import { RoadmapTab } from './tabs/roadmap-tab';
 import { SnapshotView } from './snapshot-view';
 import { useChartStrings } from './ui/use-chart-strings';
 
+/** The full set of chart implementations (lazy for web, eager for print). */
 export type ChartSet = {
   Radar: ComponentType<RadarProps>;
   Donut: ComponentType<DonutProps>;
   Bar: ComponentType<MaturityBarProps>;
+  Compare: ComponentType<PillarCompareProps>;
+  MaturityAcross: ComponentType<MaturityAcrossProps>;
+  Calibration: ComponentType<CalibrationProps>;
+  Severity: ComponentType<SeverityPieProps>;
+  Effort: ComponentType<EffortBarProps>;
+  FindingsByPillar: ComponentType<FindingsByPillarProps>;
+  Gauge: ComponentType<OverallGaugeProps>;
+  EffortTimeline: ComponentType<EffortByTimelineProps>;
 };
+
+const PANEL_ID = 'report-panel';
 
 export function ReportView({
   portalToken,
@@ -37,10 +58,11 @@ export function ReportView({
   charts: ChartSet;
 }) {
   const t = useTranslations('report');
-  const cs = useChartStrings();
+  const strings = useChartStrings();
   const [data, setData] = useState<ReportPayload | null>(null);
   const [error, setError] = useState(false);
 
+  // ONE fetch, shared across every tab — tabs switch rendered sections only.
   useEffect(() => {
     let cancelled = false;
     api.report
@@ -61,44 +83,106 @@ export function ReportView({
     [data],
   );
 
-  const navItems = useMemo<NavItem[]>(() => {
-    if (!data) return [];
-    const items: NavItem[] = [{ id: 'overview', label: t('navOverview') }];
-    for (const p of pillars) {
-      items.push({ id: `pillar-${p.key}`, label: p.name, code: p.code });
-    }
-    if (data.findings.length > 0) items.push({ id: 'findings', label: t('findingsTitle') });
-    if (data.roadmap.length > 0) items.push({ id: 'roadmap', label: t('roadmapTitle') });
-    if (data.quickWins.length > 0) items.push({ id: 'quickwins', label: t('quickWinsTitle') });
-    return items;
-  }, [data, pillars, t]);
+  const radarData = useMemo<RadarPoint[]>(
+    () =>
+      pillars.map((p) => ({
+        name: p.name,
+        value: distributionTotal(p.stats.distribution) > 0 ? p.stats.healthPct : null,
+        self: p.stats.selfHealthPct,
+        urgency: distributionTotal(p.stats.distribution) > 0 ? p.stats.urgencyIndex : null,
+        scored: p.stats.scored,
+      })),
+    [pillars],
+  );
+
+  // Which tabs actually have content (drives the tab bar + hash fallback).
+  const availableTabs = useMemo<TabId[]>(() => {
+    if (!data) return ['overview'];
+    const tabs: TabId[] = ['overview'];
+    if (pillars.length > 0) tabs.push('pillars');
+    if (data.findings.length > 0) tabs.push('findings');
+    if (data.roadmap.length > 0 || data.quickWins.length > 0) tabs.push('roadmap');
+    return tabs;
+  }, [data, pillars]);
+
+  const { active, select } = useTabHash(availableTabs, 'overview');
 
   if (error) return <FriendlyError title={t('errorTitle')} body={t('errorBody')} />;
   if (!data) return <LoadingScreen label={t('loading')} />;
 
   const isDevya = data.meta.framework.brandKey === 'devya';
-  const branding = isDevya ? (
-    <Wordmark />
-  ) : (
-    <Wordmark neutralName={data.meta.framework.name} />
-  );
+  const branding = isDevya ? <Wordmark /> : <Wordmark neutralName={data.meta.framework.name} />;
 
   // A free self-serve snapshot is not yet code-verified — render the
-  // self-assessment framing instead of the full report.
+  // self-assessment framing instead of the tabbed report.
   const snapshot = data.meta.verified === false;
 
-  // Radar data: verified health with a self-reported overlay ring. Null health
-  // (a pillar with nothing scored) is surfaced by the tooltip, not dropped.
-  const radarData = pillars.map((p) => ({
-    name: p.name,
-    value: distributionTotal(p.stats.distribution) > 0 ? p.stats.healthPct : null,
-    self: p.stats.selfHealthPct,
-    urgency: distributionTotal(p.stats.distribution) > 0 ? p.stats.urgencyIndex : null,
-    scored: p.stats.scored,
-  }));
-  const hasRadar = radarData.length > 0;
+  const tabDefs: TabDef[] = availableTabs.map((id) => {
+    if (id === 'findings') return { id, label: t('navFindings'), count: data.findings.length };
+    if (id === 'pillars') return { id, label: t('navPillars') };
+    if (id === 'roadmap') return { id, label: t('navRoadmap') };
+    return { id, label: t('navOverview') };
+  });
 
-  const { Radar, Donut, Bar } = charts;
+  const {
+    Radar,
+    Donut,
+    Bar,
+    Compare,
+    MaturityAcross,
+    Calibration,
+    Severity,
+    Effort,
+    FindingsByPillar,
+    Gauge,
+    EffortTimeline,
+  } = charts;
+
+  // The tab panels, keyed by tab id. Print renders ALL of them in sequence.
+  const overview = (
+    <OverviewTab
+      data={data}
+      radarData={radarData}
+      Radar={Radar}
+      Donut={Donut}
+      Gauge={Gauge}
+      Calibration={Calibration}
+      strings={strings}
+      print={print}
+      onGoto={print ? undefined : select}
+    />
+  );
+  const pillarsPanel = pillars.length > 0 && (
+    <PillarsTab
+      pillars={pillars}
+      Donut={Donut}
+      Bar={Bar}
+      Compare={Compare}
+      MaturityAcross={MaturityAcross}
+      strings={strings}
+      print={print}
+    />
+  );
+  const findingsPanel = data.findings.length > 0 && (
+    <FindingsTab
+      findings={data.findings}
+      pillars={pillars}
+      Severity={Severity}
+      Effort={Effort}
+      ByPillar={FindingsByPillar}
+      strings={strings}
+      print={print}
+    />
+  );
+  const roadmapPanel = (data.roadmap.length > 0 || data.quickWins.length > 0) && (
+    <RoadmapTab
+      roadmap={data.roadmap}
+      quickWins={data.quickWins}
+      EffortTimeline={EffortTimeline}
+      strings={strings}
+      print={print}
+    />
+  );
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -133,88 +217,45 @@ export function ReportView({
       >
         {snapshot ? (
           <SnapshotView data={data} print={print} Radar={Radar} Donut={Donut} />
-        ) : (
-          <div className={print ? '' : 'lg:grid lg:grid-cols-[15rem_1fr] lg:gap-8'}>
-            {!print && (
-              <aside className="mt-6 lg:mt-8">
-                <SectionNav items={navItems} />
-              </aside>
+        ) : print ? (
+          // ---------- PRINT: linear document, every tab in sequence ----------
+          <div className="min-w-0">
+            {overview}
+            <div className="mt-12 print:break-before-page">{pillarsPanel}</div>
+            {findingsPanel}
+            {roadmapPanel}
+            {isDevya && (
+              <footer className="mt-12 border-t border-white/5 pt-6 text-xs text-ink-500">
+                {t('poweredBy')}
+              </footer>
             )}
-
-            <div className="min-w-0">
-              <div id="overview" className="scroll-mt-24">
-                <ReportHero meta={data.meta} overall={data.overall} />
-              </div>
-
-              <ReportGuide print={print} />
-
-              {hasRadar && (
-                <section className="surface mt-6 p-6 print:break-inside-avoid">
-                  <h2 className="text-sm font-medium text-ink-200">{t('radarTitle')}</h2>
-                  <p className="mt-0.5 text-xs text-ink-500">{t('radarSubtitle')}</p>
-                  <div className="mt-3">
-                    <Radar
-                      data={radarData}
-                      animate={!print}
-                      showSelf
-                      strings={print ? undefined : cs}
-                    />
-                  </div>
-                </section>
-              )}
-
-              {data.execSummary && (
-                <section className="surface mt-6 p-6">
-                  <h2 className="text-xl font-semibold text-white">{t('execSummaryTitle')}</h2>
-                  <div className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink-200">
-                    {data.execSummary}
-                  </div>
-                </section>
-              )}
-
-              {pillars.map((pillar) =>
-                print ? (
-                  <PillarSection
-                    key={pillar.key}
-                    pillar={pillar}
-                    Donut={Donut}
-                    Bar={Bar}
-                    print
-                  />
-                ) : (
-                  <Reveal key={pillar.key} as="section">
-                    <PillarSection
-                      pillar={pillar}
-                      Donut={Donut}
-                      Bar={Bar}
-                      print={false}
-                    />
-                  </Reveal>
-                ),
-              )}
-
-              {data.findings.length > 0 && (
-                <div id="findings" className="scroll-mt-24">
-                  <FindingsSection findings={data.findings} />
-                </div>
-              )}
-              {data.roadmap.length > 0 && (
-                <div id="roadmap" className="scroll-mt-24">
-                  <RoadmapSection roadmap={data.roadmap} />
-                </div>
-              )}
-              {data.quickWins.length > 0 && (
-                <div id="quickwins" className="scroll-mt-24">
-                  <QuickWinsGrid items={data.quickWins} />
-                </div>
-              )}
-
-              {isDevya && (
-                <footer className="mt-12 border-t border-white/5 pt-6 text-xs text-ink-500">
-                  {t('poweredBy')}
-                </footer>
-              )}
+          </div>
+        ) : (
+          // ---------- WEB: sticky tab bar + one active panel ----------
+          <div className="min-w-0">
+            <div className="sticky top-[3.25rem] z-30 -mx-4 mt-4 border-b border-white/5 bg-ink-950/80 px-4 py-2 backdrop-blur">
+              <ReportTabs tabs={tabDefs} active={active} onSelect={select} panelId={PANEL_ID} />
             </div>
+
+            <div
+              id={PANEL_ID}
+              role="tabpanel"
+              aria-labelledby={`tab-${active}`}
+              tabIndex={0}
+              className="tab-fade-in mt-2 focus:outline-none"
+              key={active}
+            >
+              {active === 'overview' && overview}
+              {active === 'pillars' && pillarsPanel}
+              {active === 'findings' && findingsPanel}
+              {active === 'roadmap' && roadmapPanel}
+            </div>
+
+            {isDevya && (
+              <footer className="mt-12 border-t border-white/5 pt-6 text-xs text-ink-500">
+                {t('poweredBy')}
+              </footer>
+            )}
           </div>
         )}
       </main>
