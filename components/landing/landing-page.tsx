@@ -26,6 +26,7 @@ import { Wordmark } from '@/components/ui/wordmark';
 import { LocaleToggle } from '@/components/ui/locale-toggle';
 import { BOOK_URL, demoReportPath } from '@/lib/links';
 import { Reveal } from './reveal';
+import { FxPrice } from './fx-price';
 
 const PRIMARY =
   'inline-flex items-center justify-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-medium text-ink-900 transition-colors hover:bg-ink-200 ring-focus';
@@ -113,6 +114,7 @@ export function LandingPage() {
                 {t('ctaBook')}
               </a>
             </div>
+            <p className="mt-4 text-sm text-ink-400">{t('ctaMicro')}</p>
           </div>
         </div>
       </section>
@@ -282,7 +284,7 @@ export function LandingPage() {
           <Reveal delay={100}>
             <PricingCard
               name={t('pricingTier2Name')}
-              price={t('pricingTier2Price')}
+              price={<FxPrice />}
               tagline={t('pricingTier2Tagline')}
               popularLabel={t('pricingPopular')}
               features={[
@@ -292,7 +294,6 @@ export function LandingPage() {
                 t('pricingTier2F4'),
                 t('pricingTier2F5'),
               ]}
-              quoteNote={t('pricingQuoteNote')}
               highlighted
             >
               <a href={BOOK_URL} className={`${PRIMARY} w-full`}>
@@ -360,6 +361,7 @@ export function LandingPage() {
                   {t('ctaBook')}
                 </a>
               </div>
+              <p className="mt-4 text-sm text-ink-400">{t('ctaMicro')}</p>
             </div>
           </div>
         </Reveal>
@@ -482,8 +484,8 @@ function PricingCard({
   quoteNote,
   highlighted,
 }: {
-  name: string;
-  price: string;
+  name: ReactNode;
+  price: ReactNode;
   tagline: string;
   features: string[];
   children: ReactNode;
@@ -505,7 +507,13 @@ function PricingCard({
         </span>
       )}
       <h3 className="text-lg font-semibold text-white">{name}</h3>
-      <div className="mt-2 text-2xl font-semibold text-white">{price}</div>
+      <div className="mt-2">
+        {typeof price === 'string' ? (
+          <span className="text-2xl font-semibold text-white">{price}</span>
+        ) : (
+          price
+        )}
+      </div>
       <p className="mt-2 text-sm leading-relaxed text-ink-400">{tagline}</p>
       <ul className="mt-6 flex-1 space-y-2.5">
         {features.map((f) => (

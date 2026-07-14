@@ -15,6 +15,7 @@
     "ctaStart": "Start free",
     "ctaSample": "See a live sample report",
     "ctaBook": "Book a call",
+    "ctaMicro": "Free self-serve snapshot — see where you stand in ~15 minutes. Full review delivered in 2 weeks.",
     "cta": "Book a call",
 
     "proofHeadline": "Devya was assessed under an international engineering accelerator and scored 87% — we built X-Ray from the inside.",
@@ -86,7 +87,8 @@
     "pricingTier1Cta": "Start free",
     "pricingTier2Name": "Full X-Ray",
     "pricingTier2Price": "The 2-week engagement",
-    "pricingTier2Tagline": "Your self-score, verified against your actual code.",
+    "pricingTier2Tagline": "The 2-week engagement — your self-score, verified against your actual code.",
+    "pricingRatesNote": "Fixed price in EGP. Other currencies are indicative, at today's rate.",
     "pricingTier2F1": "Everything in Snapshot",
     "pricingTier2F2": "Codebase & infrastructure review",
     "pricingTier2F3": "Validation workshop with your team",
