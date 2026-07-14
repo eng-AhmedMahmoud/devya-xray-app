@@ -1,5 +1,8 @@
 import { ImageResponse } from 'next/og';
 
+// Rendered on demand by the standalone server (static prerender of image
+// routes isn't served reliably from the standalone output).
+export const dynamic = 'force-dynamic';
 export const size = { width: 180, height: 180 };
 export const contentType = 'image/png';
 

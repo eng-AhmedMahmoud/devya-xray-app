@@ -52,12 +52,14 @@ export async function generateMetadata({
       description,
       url,
       locale: locale === 'ar' ? 'ar_EG' : 'en_US',
+      images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: title }],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
       site: '@devya_solutions',
+      images: ['/opengraph-image'],
     },
   };
 }

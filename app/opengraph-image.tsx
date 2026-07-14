@@ -1,5 +1,8 @@
 import { ImageResponse } from 'next/og';
 
+// Rendered on demand by the standalone server (static prerender of image
+// routes isn't served reliably from the standalone output).
+export const dynamic = 'force-dynamic';
 export const alt = 'Devya X-Ray — engineering review consultancy';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
