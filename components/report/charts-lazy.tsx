@@ -12,7 +12,7 @@ export const PillarRadarLazy = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-[320px] animate-pulse rounded-md bg-white/[0.03]" />
+      <div className="h-[340px] animate-pulse rounded-md bg-white/[0.03]" />
     ),
   },
 );
@@ -23,6 +23,16 @@ export const DistributionDonutLazy = dynamic(
     ssr: false,
     loading: () => (
       <div className="h-[240px] animate-pulse rounded-md bg-white/[0.03]" />
+    ),
+  },
+);
+
+export const MaturityBarLazy = dynamic(
+  () => import('./charts').then((m) => m.MaturityBar),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-14 animate-pulse rounded-md bg-white/[0.03]" />
     ),
   },
 );

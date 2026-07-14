@@ -1,24 +1,30 @@
 'use client';
 
-import { useEffect, useState, type ComponentType } from 'react';
+import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import { useTranslations } from 'next-intl';
 import { Download } from 'lucide-react';
 import { api, type ReportPayload } from '@/lib/api';
+import { distributionTotal } from '@/lib/ui';
 import { Wordmark } from '@/components/ui/wordmark';
 import { LocaleToggle } from '@/components/ui/locale-toggle';
 import { FriendlyError } from '@/components/ui/friendly-error';
 import { LoadingScreen } from '@/components/ui/loading-screen';
-import type { DonutProps, RadarProps } from './charts';
+import { Reveal } from '@/components/landing/reveal';
+import type { DonutProps, MaturityBarProps, RadarProps } from './charts';
 import { ReportHero } from './report-hero';
+import { ReportGuide } from './report-guide';
+import { SectionNav, type NavItem } from './section-nav';
 import { PillarSection } from './pillar-section';
 import { FindingsSection } from './findings-section';
 import { RoadmapSection } from './roadmap-section';
 import { QuickWinsGrid } from './quick-wins-grid';
 import { SnapshotView } from './snapshot-view';
+import { useChartStrings } from './ui/use-chart-strings';
 
 export type ChartSet = {
   Radar: ComponentType<RadarProps>;
   Donut: ComponentType<DonutProps>;
+  Bar: ComponentType<MaturityBarProps>;
 };
 
 export function ReportView({
@@ -31,6 +37,7 @@ export function ReportView({
   charts: ChartSet;
 }) {
   const t = useTranslations('report');
+  const cs = useChartStrings();
   const [data, setData] = useState<ReportPayload | null>(null);
   const [error, setError] = useState(false);
 
@@ -49,6 +56,23 @@ export function ReportView({
     };
   }, [portalToken]);
 
+  const pillars = useMemo(
+    () => (data ? [...data.pillars].sort((a, b) => a.order - b.order) : []),
+    [data],
+  );
+
+  const navItems = useMemo<NavItem[]>(() => {
+    if (!data) return [];
+    const items: NavItem[] = [{ id: 'overview', label: t('navOverview') }];
+    for (const p of pillars) {
+      items.push({ id: `pillar-${p.key}`, label: p.name, code: p.code });
+    }
+    if (data.findings.length > 0) items.push({ id: 'findings', label: t('findingsTitle') });
+    if (data.roadmap.length > 0) items.push({ id: 'roadmap', label: t('roadmapTitle') });
+    if (data.quickWins.length > 0) items.push({ id: 'quickwins', label: t('quickWinsTitle') });
+    return items;
+  }, [data, pillars, t]);
+
   if (error) return <FriendlyError title={t('errorTitle')} body={t('errorBody')} />;
   if (!data) return <LoadingScreen label={t('loading')} />;
 
@@ -63,11 +87,18 @@ export function ReportView({
   // self-assessment framing instead of the full report.
   const snapshot = data.meta.verified === false;
 
-  const radarData = [...data.pillars]
-    .sort((a, b) => a.order - b.order)
-    .map((p) => ({ name: p.name, value: p.stats.healthPct }));
-  const pillars = [...data.pillars].sort((a, b) => a.order - b.order);
-  const { Radar, Donut } = charts;
+  // Radar data: verified health with a self-reported overlay ring. Null health
+  // (a pillar with nothing scored) is surfaced by the tooltip, not dropped.
+  const radarData = pillars.map((p) => ({
+    name: p.name,
+    value: distributionTotal(p.stats.distribution) > 0 ? p.stats.healthPct : null,
+    self: p.stats.selfHealthPct,
+    urgency: distributionTotal(p.stats.distribution) > 0 ? p.stats.urgencyIndex : null,
+    scored: p.stats.scored,
+  }));
+  const hasRadar = radarData.length > 0;
+
+  const { Radar, Donut, Bar } = charts;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -103,41 +134,88 @@ export function ReportView({
         {snapshot ? (
           <SnapshotView data={data} print={print} Radar={Radar} Donut={Donut} />
         ) : (
-          <>
-            <ReportHero meta={data.meta} overall={data.overall} />
+          <div className={print ? '' : 'lg:grid lg:grid-cols-[15rem_1fr] lg:gap-8'}>
+            {!print && (
+              <aside className="mt-6 lg:mt-8">
+                <SectionNav items={navItems} />
+              </aside>
+            )}
 
-            {radarData.length > 0 && (
-              <section className="surface mt-6 p-6 print:break-inside-avoid">
-                <h2 className="text-sm font-medium text-ink-200">{t('radarTitle')}</h2>
-                <div className="mt-3">
-                  <Radar data={radarData} animate={!print} />
+            <div className="min-w-0">
+              <div id="overview" className="scroll-mt-24">
+                <ReportHero meta={data.meta} overall={data.overall} />
+              </div>
+
+              <ReportGuide print={print} />
+
+              {hasRadar && (
+                <section className="surface mt-6 p-6 print:break-inside-avoid">
+                  <h2 className="text-sm font-medium text-ink-200">{t('radarTitle')}</h2>
+                  <p className="mt-0.5 text-xs text-ink-500">{t('radarSubtitle')}</p>
+                  <div className="mt-3">
+                    <Radar
+                      data={radarData}
+                      animate={!print}
+                      showSelf
+                      strings={print ? undefined : cs}
+                    />
+                  </div>
+                </section>
+              )}
+
+              {data.execSummary && (
+                <section className="surface mt-6 p-6">
+                  <h2 className="text-xl font-semibold text-white">{t('execSummaryTitle')}</h2>
+                  <div className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink-200">
+                    {data.execSummary}
+                  </div>
+                </section>
+              )}
+
+              {pillars.map((pillar) =>
+                print ? (
+                  <PillarSection
+                    key={pillar.key}
+                    pillar={pillar}
+                    Donut={Donut}
+                    Bar={Bar}
+                    print
+                  />
+                ) : (
+                  <Reveal key={pillar.key} as="section">
+                    <PillarSection
+                      pillar={pillar}
+                      Donut={Donut}
+                      Bar={Bar}
+                      print={false}
+                    />
+                  </Reveal>
+                ),
+              )}
+
+              {data.findings.length > 0 && (
+                <div id="findings" className="scroll-mt-24">
+                  <FindingsSection findings={data.findings} />
                 </div>
-              </section>
-            )}
-
-            {data.execSummary && (
-              <section className="surface mt-6 p-6">
-                <h2 className="text-xl font-semibold text-white">{t('execSummaryTitle')}</h2>
-                <div className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink-200">
-                  {data.execSummary}
+              )}
+              {data.roadmap.length > 0 && (
+                <div id="roadmap" className="scroll-mt-24">
+                  <RoadmapSection roadmap={data.roadmap} />
                 </div>
-              </section>
-            )}
+              )}
+              {data.quickWins.length > 0 && (
+                <div id="quickwins" className="scroll-mt-24">
+                  <QuickWinsGrid items={data.quickWins} />
+                </div>
+              )}
 
-            {pillars.map((pillar) => (
-              <PillarSection key={pillar.key} pillar={pillar} Donut={Donut} print={print} />
-            ))}
-
-            {data.findings.length > 0 && <FindingsSection findings={data.findings} />}
-            {data.roadmap.length > 0 && <RoadmapSection roadmap={data.roadmap} />}
-            {data.quickWins.length > 0 && <QuickWinsGrid items={data.quickWins} />}
-
-            {isDevya && (
-              <footer className="mt-12 border-t border-white/5 pt-6 text-xs text-ink-500">
-                {t('poweredBy')}
-              </footer>
-            )}
-          </>
+              {isDevya && (
+                <footer className="mt-12 border-t border-white/5 pt-6 text-xs text-ink-500">
+                  {t('poweredBy')}
+                </footer>
+              )}
+            </div>
+          </div>
         )}
       </main>
     </div>

@@ -7,6 +7,7 @@ import type { ReportPayload } from '@/lib/api';
 import { formatDate, formatNumber } from '@/lib/ui';
 import type { DonutProps, RadarProps } from './charts';
 import { SnapshotUpsell } from './snapshot-upsell';
+import { useChartStrings } from './ui/use-chart-strings';
 
 /**
  * Self-assessment snapshot rendition (meta.verified === false). Everything here
@@ -28,6 +29,7 @@ export function SnapshotView({
   const t = useTranslations('report');
   const tm = useTranslations('maturity');
   const locale = useLocale();
+  const cs = useChartStrings();
 
   const published = formatDate(locale, data.meta.publishedAt);
   const pillars = [...data.pillars].sort((a, b) => a.order - b.order);
@@ -89,7 +91,7 @@ export function SnapshotView({
         <section className="surface mt-6 p-6 print:break-inside-avoid">
           <h2 className="text-sm font-medium text-ink-200">{t('snapshotRadarTitle')}</h2>
           <div className="mt-3">
-            <Radar data={radarData} animate={!print} />
+            <Radar data={radarData} animate={!print} strings={print ? undefined : cs} />
           </div>
         </section>
       )}
@@ -115,6 +117,7 @@ export function SnapshotView({
                   distribution={pillar.stats.selfDistribution}
                   labels={labels}
                   animate={!print}
+                  strings={print ? undefined : cs}
                 />
               </div>
             </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { ReportView } from './report-view';
-import { DistributionDonut, PillarRadar } from './charts';
+import { DistributionDonut, MaturityBar, PillarRadar } from './charts';
 
 /**
  * Print rendition rendered by the backend's puppeteer. Charts are imported
@@ -13,7 +13,7 @@ export function ReportPrint({ portalToken }: { portalToken: string }) {
     <ReportView
       portalToken={portalToken}
       print
-      charts={{ Radar: PillarRadar, Donut: DistributionDonut }}
+      charts={{ Radar: PillarRadar, Donut: DistributionDonut, Bar: MaturityBar }}
     />
   );
 }
