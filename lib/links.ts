@@ -12,7 +12,11 @@ export const DEMO_PORTAL_TOKEN =
   process.env.NEXT_PUBLIC_DEMO_PORTAL_TOKEN ??
   'ab60dc441b1d86f876cd8b4f7573c1544ca546c9';
 
-/** Locale-scoped path to the live sample report. */
-export function demoReportPath(locale: string): string {
-  return `/${locale}/r/${DEMO_PORTAL_TOKEN}`;
+/**
+ * Path to the live sample report for the next-intl `Link` — which prepends the
+ * active locale itself, so this must be locale-RELATIVE (no `/en` prefix) or the
+ * URL double-prefixes to `/en/en/r/...` and 404s.
+ */
+export function demoReportPath(_locale?: string): string {
+  return `/r/${DEMO_PORTAL_TOKEN}`;
 }

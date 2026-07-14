@@ -19,18 +19,45 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'meta' });
+  const title = t('title');
+  const description = t('description');
+  const url = `${baseUrl}/${locale}`;
   return {
     metadataBase: new URL(baseUrl),
-    title: t('title'),
-    description: t('description'),
+    title: { default: title, template: '%s · Devya X-Ray' },
+    description,
+    applicationName: 'Devya X-Ray',
+    keywords: [
+      'engineering review',
+      'code audit',
+      'software maturity assessment',
+      'technical due diligence',
+      'CTO consultancy',
+      'Devya X-Ray',
+    ],
+    authors: [{ name: 'Devya Solutions', url: 'https://devya.dev' }],
     robots: { index: true, follow: true },
     alternates: {
-      canonical: `${baseUrl}/${locale}`,
+      canonical: url,
       languages: {
         en: `${baseUrl}/en`,
         ar: `${baseUrl}/ar`,
         'x-default': `${baseUrl}/en`,
       },
+    },
+    openGraph: {
+      type: 'website',
+      siteName: 'Devya X-Ray',
+      title,
+      description,
+      url,
+      locale: locale === 'ar' ? 'ar_EG' : 'en_US',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      site: '@devya_solutions',
     },
   };
 }
