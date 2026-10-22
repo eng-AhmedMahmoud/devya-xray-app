@@ -1,5 +1,5 @@
 # Multi-stage production build for the Devya X-Ray app (Next.js standalone).
-FROM node:22-alpine AS deps
+FROM node:24.22.1-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
 # `npm install` (not ci) tolerates platform-specific optional deps that a
@@ -7,7 +7,7 @@ COPY package.json package-lock.json* ./
 # for this platform.
 RUN npm install --no-audit --no-fund
 
-FROM node:22-alpine AS builder
+FROM node:24.22.1-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -17,7 +17,7 @@ ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
     NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-FROM node:22-alpine AS runner
+FROM node:24.22.1-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
