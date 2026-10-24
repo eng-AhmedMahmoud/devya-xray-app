@@ -1,4 +1,5 @@
 import createNextIntlPlugin from 'next-intl/plugin';
+import { securityHeaders } from './security-headers.mjs';
 
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
@@ -6,6 +7,10 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  poweredByHeader: false,
+  async headers() {
+    return [{ source: '/:path*', headers: securityHeaders }];
+  },
   // Browser calls stay same-origin (/api/*) and the Next server proxies them to
   // the backend — no CORS needed. Locally: API_PROXY_TARGET=https://api.localhost
   async rewrites() {
