@@ -118,7 +118,7 @@
     "back": "Back",
     "kicker": "Free snapshot",
     "title": "Start your free X-Ray snapshot",
-    "lede": "Tell us who you are and jump straight into the self-assessment. Your instant, auto-scored maturity snapshot is waiting on the other side.",
+    "lede": "Tell us who you are and we'll email you a link to the self-assessment. Your auto-scored maturity snapshot is waiting on the other side.",
     "companyLabel": "Company name",
     "companyPlaceholder": "Acme Inc.",
     "nameLabel": "Your name",
@@ -143,7 +143,10 @@
     "errorName": "Please enter your name.",
     "errorGeneric": "Something went wrong. Please try again in a moment.",
     "sampleNote": "Curious first? See a live sample report.",
-    "sampleLink": "See a live sample report"
+    "sampleLink": "See a live sample report",
+    "inboxTitle": "Check your inbox",
+    "inboxBody": "We sent the link to your self-assessment to <email></email>. Open it from that inbox to start — your snapshot is published once you submit.",
+    "inboxHint": "Nothing after a few minutes? Check spam, or start again with the right address."
   },
   "assessment": {
     "errorTitle": "We couldn't find that assessment",

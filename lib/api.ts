@@ -225,8 +225,9 @@ export type StartSelfServeBody = {
 };
 
 export type StartSelfServeResult = {
-  assessToken: string;
-  portalToken: string;
+  /** The assessment link is emailed; only an older backend returns it here. */
+  assessToken?: string;
+  emailed?: boolean;
   lang: string;
 };
 

@@ -2,12 +2,13 @@
 
 import { useState, type FormEvent } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, MailCheck } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { useRouter, Link } from '@/i18n/navigation';
 import { Wordmark } from '@/components/ui/wordmark';
 import { LocaleToggle } from '@/components/ui/locale-toggle';
 import { demoReportPath } from '@/lib/links';
+import { nextStepAfterStart } from '@/lib/start-result';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -26,6 +27,7 @@ export function StartForm() {
   const [teamSize, setTeamSize] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sentTo, setSentTo] = useState<string | null>(null);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -46,7 +48,13 @@ export function StartForm() {
         lang: locale,
       });
       const lang = res.lang || locale;
-      router.replace(`/a/${res.assessToken}`, { locale: lang as 'en' | 'ar' });
+      const next = nextStepAfterStart(res);
+      if (next.kind === 'assess') {
+        router.replace(`/a/${next.token}`, { locale: lang as 'en' | 'ar' });
+        return;
+      }
+      setSentTo(email.trim());
+      setSubmitting(false);
     } catch (err) {
       const msg =
         err instanceof ApiError && err.message ? err.message : t('errorGeneric');
@@ -83,6 +91,22 @@ export function StartForm() {
           </h1>
           <p className="mt-3 text-base leading-relaxed text-ink-300">{t('lede')}</p>
 
+          {sentTo ? (
+            <div role="status" className="surface mt-8 p-6 sm:p-7">
+              <MailCheck className="h-6 w-6 text-ink-200" />
+              <h2 className="mt-4 text-lg font-semibold text-white">{t('inboxTitle')}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-ink-300">
+                {t.rich('inboxBody', {
+                  email: () => (
+                    <bdi dir="ltr" className="font-medium text-ink-100">
+                      {sentTo}
+                    </bdi>
+                  ),
+                })}
+              </p>
+              <p className="mt-3 text-xs leading-relaxed text-ink-500">{t('inboxHint')}</p>
+            </div>
+          ) : (
           <form onSubmit={onSubmit} className="surface mt-8 space-y-5 p-6 sm:p-7" noValidate>
             <div>
               <label htmlFor="company" className="text-xs font-medium text-ink-200">
@@ -202,6 +226,7 @@ export function StartForm() {
               )}
             </button>
           </form>
+          )}
 
           <p className="mt-6 text-center text-sm text-ink-500">
             <Link
